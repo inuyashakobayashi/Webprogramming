@@ -1,12 +1,12 @@
-// src/routes/poll.routes.js
 const express = require('express');
 const router = express.Router();
+const controller = require('../controllers/poll.controller');
 
-// Debug-Import
-const pollController = require('../controllers/poll.controller');
-console.log('Controller Import:', pollController);  // Prüft ob Import funktioniert
+// Debug-Log
+console.log('Routes - Controller Import:', controller);
 
-router.post('/lack', pollController.createPollLack);
-router.get('/lack/:token', pollController.getPollStatistik);
+// Definiere Routes
+router.post('/lack', controller.createPollLack);
+router.get('/lack/:token', controller.getPollStatistik);
 
 module.exports = router;

@@ -1,44 +1,30 @@
-// src/index.js
 const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
+const connectDB = require('./config/db');
+const pollRoutes = require('./routes/poll.routes');
 
-// Express app initialisieren
 const app = express();
 
 // Middleware
-app.use(cors());
 app.use(express.json());
 
-// Routes importieren
-const pollRoutes = require('./routes/poll.routes');
-// Test-Route
-app.get('/test', (req, res) => {
-    res.json({ message: 'Test erfolgreich!' });
-});
-// Routes verwenden
-app.use('/poll', pollRoutes);
+// Verbinde zur Datenbank VOR dem Server-Start
+const startServer = async () => {
+    try {
+        // Warte auf Datenbankverbindung
+        await connectDB();
 
-// Port aus .env oder default 3000
-const port = process.env.PORT || 3000;
-// 404 Handler - NACH allen anderen Routes
-app.use((req, res) => {
-    res.status(404).json({
-        code: 404,
-        message: "Route not found"
-    });
-});
+        // Routes
+        app.use('/poll', pollRoutes);
 
-// Error Handler - Ganz am Ende
-app.use((err, req, res, next) => {
-    console.error('Error:', err);
-    res.status(500).json({
-        code: 500,
-        message: "Internal server error"
-    });
-});
+        // Starte Server
+        const PORT = 3000;
+        app.listen(PORT, () => {
+            console.log(`Server läuft auf http://localhost:${PORT}`);
+        });
+    } catch (error) {
+        console.error('Server Startfehler:', error);
+        process.exit(1);
+    }
+};
 
-// Server starten
-app.listen(port, () => {
-    console.log(`Server läuft auf http://localhost:${port}`);
-});
+startServer();

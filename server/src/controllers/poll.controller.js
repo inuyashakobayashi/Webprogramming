@@ -1,64 +1,83 @@
-// src/controllers/poll.controller.js
-const crypto = require('crypto');
 const Poll = require('../models/poll.model');
+const crypto = require('crypto');
+
 const createPollLack = async (req, res) => {
     try {
-        // 1. Validiere Request Body
         const { title, options } = req.body;
-        console.log('Erhaltene Daten:', { title, options }); // Log der Daten
+        console.log('Erhaltene Daten:', { title, options });
 
-        if (!title || !options) {
-            return res.status(405).json({
-                code: 405,
-                message: "Invalid input"
+        // Validierung
+        if (!title || !Array.isArray(options) || options.length === 0) {
+            return res.status(400).json({
+                code: 400,
+                message: "Titel und mindestens eine Option sind erforderlich"
             });
         }
+
+        // Tokens generieren
         const adminToken = crypto.randomBytes(8).toString('hex');
         const shareToken = crypto.randomBytes(8).toString('hex');
+
+        // Neuen Poll erstellen
         const newPoll = new Poll({
             title,
             options: options.map(opt => ({
                 id: opt.id,
-                text: opt.text
+                text: opt.text,
+                votes: []
             })),
+            setting: {
+                voices: 1,
+                worst: false
+            },
             adminToken,
             shareToken
         });
 
-        // 4. Speichere in Datenbank
-        await newPoll.save();
+        // In DB speichern
+        const savedPoll = await newPoll.save();
+        console.log('Poll erfolgreich gespeichert:', savedPoll);
 
-
-        return res.status(200).json({
+        // Response
+        return res.status(201).json({
             admin: {
-                link: "string",
+                link: `/poll/admin/${adminToken}`,
                 value: adminToken
             },
             share: {
-                link: "string",
+                link: `/poll/share/${shareToken}`,
                 value: shareToken
             }
         });
 
     } catch (error) {
         console.error('Error in createPollLack:', error);
+
+        // Mongoose Validierungsfehler
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({
+                code: 400,
+                message: error.message
+            });
+        }
+
+        // Sonstige Fehler
         res.status(500).json({
             code: 500,
-            message: "Internal server error"
+            message: "Interner Server-Fehler",
+            error: error.message
         });
     }
 };
 
-// Logging beim Export
 const getPollStatistik = async (req, res) => {
     try {
-
         const shareToken = req.params.token;
-        const dbShareToken = "";
 
+        // Finde den Poll mit dem shareToken
+        const poll = await Poll.findOne({ shareToken: shareToken });
 
-        const poll = await findPollByToken(token);
-
+        // Wenn kein Poll gefunden wurde
         if (!poll) {
             return res.status(404).json({
                 code: 404,
@@ -66,79 +85,59 @@ const getPollStatistik = async (req, res) => {
             });
         }
 
+        // Wenn Poll gelöscht wurde
         if (poll.isDeleted) {
             return res.status(410).json({
                 code: 410,
                 message: "Poll is gone."
             });
         }
-        // if (true) {
-        return res.status(200).json({
-            "poll": {
-                "body": {
-                    "title": "What is your favorite color?",
-                    "description": "By blue are also meant blue-like colors, like turkish.",
-                    "options": [
-                        {
-                            "id": 0,
-                            "text": "string"
-                        },
-                        {
-                            "id": 0,
-                            "text": "string"
-                        }
-                    ],
-                    "setting": {
-                        "voices": 1,
-                        "worst": false,
-                        "deadline": "2023-05-29T19:21:39+02:00"
-                    },
-                    "fixed": [
-                        0
-                    ]
+
+        // Formatiere die Antwort gemäß der OpenAPI-Spezifikation
+        const response = {
+            poll: {
+                body: {
+                    title: poll.title,
+                    description: poll.description,
+                    options: poll.options.map(opt => ({
+                        id: opt.id,
+                        text: opt.text
+                    })),
+                    setting: {
+                        voices: poll.setting?.voices || 1,
+                        worst: poll.setting?.worst || false,
+                        deadline: poll.setting?.deadline
+                    }
                 },
-                "security": {
-                    "owner": {
-                        "name": "string",
-                        "lock": true
-                    },
-                    "users": [
-                        {
-                            "name": "string",
-                            "lock": true
-                        }
-                    ],
-                    "visibility": "lack"
+                security: {
+                    visibility: "lack"  // Da wir im lack-Modus sind
                 },
-                "share": {
-                    "link": "string",
-                    "value": "71yachha3ca48yz7"
+                share: {
+                    link: `/poll/share/${poll.shareToken}`,
+                    value: poll.shareToken
                 }
             },
-            "participants": [
-                {
-                    "name": "string",
-                    "lock": true
-                }
-            ],
-            "options": [
-                {
-                    "voted": [
-                        0
-                    ],
-                    "worst": [
-                        0
-                    ]
-                }
-            ]
-        });
-        //}
-    } catch (error) {
+            participants: [], // Array der Teilnehmer
+            options: poll.options.map(opt => ({
+                voted: opt.votes.filter(v => !v.isWorst).map(v => v.userId),
+                worst: opt.votes.filter(v => v.isWorst).map(v => v.userId)
+            }))
+        };
 
+        return res.status(200).json(response);
+
+    } catch (error) {
+        console.error('Error in getPollStatistik:', error);
+        res.status(500).json({
+            code: 500,
+            message: "Internal server error"
+        });
     }
-}
+};
+// Debug-Log
+console.log('Controller wird exportiert:', { createPollLack, getPollStatistik });
 
 module.exports = {
     createPollLack,
-    getPollStatistik,
+    getPollStatistik
 };

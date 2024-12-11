@@ -1,25 +1,27 @@
 const mongoose = require('mongoose');
 
-// Deine MongoDB-Verbindungs-URL
-const dbURI = 'mongodb://localhost:27017/deineDatenbank'; // Lokal (alternativ Atlas URL verwenden)
-
-// Optionen für die Mongoose-Verbindung
-const options = {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 30000, // Timeout für die Verbindung
-    useFindAndModify: false, // Deprecated Methoden vermeiden
-    useCreateIndex: true, // Verhindert Fehler bei Indizes
-};
-
-// Funktion zur Herstellung der MongoDB-Verbindung
 const connectDB = async () => {
     try {
-        await mongoose.connect(dbURI, options);
-        console.log('Datenbank verbunden');
-    } catch (err) {
-        console.error('Fehler bei der Verbindung zur Datenbank', err);
-        process.exit(1); // Bei einem Fehler beende die Anwendung
+        const conn = await mongoose.connect('mongodb://127.0.0.1:27017/pollock', {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            serverSelectionTimeoutMS: 5000,
+        });
+
+        console.log(`MongoDB Connected: ${conn.connection.host}`);
+
+        // Event Listeners für Verbindungsprobleme
+        mongoose.connection.on('error', (err) => {
+            console.error('MongoDB connection error:', err);
+        });
+
+        mongoose.connection.on('disconnected', () => {
+            console.log('MongoDB disconnected');
+        });
+
+    } catch (error) {
+        console.error('MongoDB connection error:', error);
+        process.exit(1);
     }
 };
 
