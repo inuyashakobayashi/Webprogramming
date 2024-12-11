@@ -222,9 +222,167 @@ const deletePoll = async (req, res) => {  // Korrigierte Reihenfolge: erst req, 
         });
     }
 };
+
+
+const createPollLock = async (req, res) => {
+    try {
+       
+        const { title, options, setting } = req.body;
+        
+        // Einfache Token-Generierung
+        const adminToken = Math.random().toString(36).substring(7);
+        const shareToken = Math.random().toString(36).substring(7);
+
+        const newPollLock = new Poll({
+            title,
+            options: options.map(opt => ({
+                id: opt.id,
+                text: opt.text,
+                votes: []
+            })),
+            setting: {
+                voices: setting.voices,
+                worst: false
+            },
+            adminToken,
+            shareToken,
+            created: new Date()
+        });
+
+        await newPollLock.save();
+
+        return res.status(201).json({
+            success: true,
+            data: {
+                pollId: newPollLock._id,
+                shareToken,
+                adminToken
+            }
+        });
+
+    } catch (error) {
+        console.error('Error:', error);
+        return res.status(500).json({
+            success: false,
+            message: "Fehler beim Erstellen der Umfrage"
+        });
+    }
+};
+//hier naja was ich glaube Unterschide ist wenn visibility von lack ist kann durch entweder lock und lack api aufrufen wenn visibility nur lock ist
+// kann das nur über lock aufrufen
+// Controller für private Umfragen (lock)
+const getPollStatistikByLock = async (req, res) => {
+    try {
+        
+
+        const shareToken = req.params.token;
+        const poll = await Poll.findOne({ shareToken });
+        
+        if (!poll) {
+            return res.status(404).json({
+                code: 404,
+                message: "Poll not found"
+            });
+        }
+
+ const response = {
+            poll: {
+                body: {
+                    title: poll.title,
+                    description: poll.description,
+                    options: poll.options.map(opt => ({
+                        id: opt.id,
+                        text: opt.text
+                    })),
+                    setting: {
+                        voices: poll.setting?.voices || 1,
+                        worst: poll.setting?.worst || false,
+                        deadline: poll.setting?.deadline
+                    }
+                },
+                security: {
+                    visibility: "lack"
+                },
+                share: {
+                    link: `/poll/share/${poll.shareToken}`,
+                    value: poll.shareToken
+                }
+            },
+            participants: [],
+            options: poll.options.map(opt => ({
+                voted: opt.votes.filter(v => !v.isWorst).map(v => v.userId),
+                worst: opt.votes.filter(v => v.isWorst).map(v => v.userId)
+            }))
+        };
+
+        return res.status(200).json(response);
+
+    } catch (error) {
+        console.error('Error in getPollStatistikByLock:', error);
+        return res.status(500).json({
+            code: 500,
+            message: "Internal server error"
+        });
+    }
+};
+
+const updatePollByLock = async(req,res)=>{
+  try { 
+        const adminToken = req.params.token;
+        const { description, title, options, setting, fixed } = req.body;
+
+        console.log('Suche Poll mit adminToken:', adminToken);
+
+        const updatedPoll = await Poll.findOneAndUpdate(
+            { adminToken },
+            {
+                $set: {
+                    title,
+                    description,
+                    'setting.voices': setting?.voices,
+                    'setting.worst': setting?.worst,
+                    'setting.deadline': setting?.deadline,
+                    fixed
+                },
+                options: options.map(opt => ({
+                    id: opt.id,
+                    text: opt.text,
+                    votes: []
+                }))
+            },
+            { new: true }
+        );
+
+        console.log('Gefundener/Aktualisierter Poll:', updatedPoll);
+
+        if (!updatedPoll) {
+            console.log('Kein Poll gefunden');
+            return res.status(404).json({
+                code: 404,
+                message: "Poll not found"
+            });
+        }
+
+        console.log('Update erfolgreich');
+        res.status(200).json({
+            code: 200,
+            message: "i. O."
+        });
+
+    } catch (error) {
+        console.error('Error in updatePoll:', error);
+        res.status(500).json({
+            code: 500,
+            message: "Internal server error"
+        });
+    }
+}
 module.exports = {
     createPollLack,
     getPollStatistik,
     updatePoll,
     deletePoll,
+    createPollLock,
+    getPollStatistikByLock,//nur lock user kann das sehen
+    updatePollByLock,
 };

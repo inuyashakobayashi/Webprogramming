@@ -52,7 +52,8 @@ const PollSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    deletedAt: Date
+    deletedAt: Date,
+    created:Date
 });
 
 module.exports = mongoose.model('Poll', PollSchema);
