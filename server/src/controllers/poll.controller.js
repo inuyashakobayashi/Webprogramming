@@ -134,10 +134,66 @@ const getPollStatistik = async (req, res) => {
         });
     }
 };
+
+const updatePoll = async (req, res) => {
+    console.log('Update Poll aufgerufen mit Token:', req.params.token);
+    console.log('Request Body:', req.body);
+
+    try {
+        const adminToken = req.params.token;
+        const { description, title, options, setting, fixed } = req.body;
+
+        console.log('Suche Poll mit adminToken:', adminToken);
+
+        const updatedPoll = await Poll.findOneAndUpdate(
+            { adminToken },
+            {
+                $set: {
+                    title,
+                    description,
+                    'setting.voices': setting?.voices,
+                    'setting.worst': setting?.worst,
+                    'setting.deadline': setting?.deadline,
+                    fixed
+                },
+                options: options.map(opt => ({
+                    id: opt.id,
+                    text: opt.text,
+                    votes: []
+                }))
+            },
+            { new: true }
+        );
+
+        console.log('Gefundener/Aktualisierter Poll:', updatedPoll);
+
+        if (!updatedPoll) {
+            console.log('Kein Poll gefunden');
+            return res.status(404).json({
+                code: 404,
+                message: "Poll not found"
+            });
+        }
+
+        console.log('Update erfolgreich');
+        res.status(200).json({
+            code: 200,
+            message: "i. O."
+        });
+
+    } catch (error) {
+        console.error('Error in updatePoll:', error);
+        res.status(500).json({
+            code: 500,
+            message: "Internal server error"
+        });
+    }
+};
 // Debug-Log
 console.log('Controller wird exportiert:', { createPollLack, getPollStatistik });
 
 module.exports = {
     createPollLack,
-    getPollStatistik
+    getPollStatistik,
+    updatePoll,
 };
