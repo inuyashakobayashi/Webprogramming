@@ -13,5 +13,7 @@ router.delete('/lack/:token', controller.deletePoll);
 
 router.post('/lock',checkApiKey,controller.createPollLock);
 router.get('/lock/:token',checkApiKey,controller.getPollStatistikByLock);
+router.put('/lock/:token',checkApiKey,controller.updatePollByLock);
+router.delete('/lock/:token',checkApiKey,controller.deletePollByLock);
 
 module.exports = router;

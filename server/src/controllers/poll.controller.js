@@ -377,6 +377,38 @@ const updatePollByLock = async(req,res)=>{
         });
     }
 }
+
+const deletePollByLock = async(res,req) =>{
+     try {
+        const adminToken = req.params.token;
+
+        const updatedPoll = await Poll.findOneAndUpdate(
+            { adminToken },  // Suchkriterium
+            { isDeleted: true },  // Update-Operation
+            { new: true }  // Option um das aktualisierte Dokument zurückzugeben
+        );
+
+        if (!updatedPoll) {
+            return res.status(404).json({
+                code: 404,
+                message: "Poll nicht gefunden"
+            });
+        }
+
+        return res.status(200).json({
+            code: 200,
+            message: "Poll erfolgreich als gelöscht markiert",
+            data: updatedPoll
+        });
+
+    } catch (error) {
+        console.error('Error in deletePoll:', error);
+        return res.status(500).json({
+            code: 500,
+            message: "Internal server error"
+        });
+    }
+}
 module.exports = {
     createPollLack,
     getPollStatistik,
@@ -385,4 +417,5 @@ module.exports = {
     createPollLock,
     getPollStatistikByLock,//nur lock user kann das sehen
     updatePollByLock,
+    deletePollByLock,
 };
