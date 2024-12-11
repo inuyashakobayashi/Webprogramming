@@ -9,5 +9,6 @@ console.log('Routes - Controller Import:', controller);
 router.post('/lack', controller.createPollLack);
 router.get('/lack/:token', controller.getPollStatistik);
 router.put('/lack/:token', controller.updatePoll);
+router.delete('/lack/:token', controller.deletePoll);
 
 module.exports = router;
