@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+// Option 1: Separater Import
+import *as React from 'react';
+import { useState } from 'react';
 import { PollBody, PollOption, PollSetting } from '../../types/poll';
 import { PlusCircle, Trash2 } from 'lucide-react';
 
