@@ -2,8 +2,53 @@
 import React from 'react';
 import PollCard from '../components/polls/pollCard';
 import PollCreate from '../components/polls/pollCreate';
+import PollStatistics from '../components/polls/pollStatistik';
 import { Poll, PollBody } from '../types/poll';
-
+// Füge diese Beispieldaten in PollsPage.tsx ein
+const exampleStatistics = {
+  poll: {
+    body: {
+      title: "Was ist dein Lieblings-Framework?",
+      description: "Wähle dein bevorzugtes Frontend-Framework",
+      options: [
+        { id: 1, text: "React" },
+        { id: 2, text: "Vue" },
+        { id: 3, text: "Angular" }
+      ],
+      setting: {
+        deadline: "2024-12-31T23:59:59Z",
+        worst: true
+      }
+    },
+    security: {
+      visibility: "lack"
+    },
+    share: {
+      value: "abc123"
+    }
+  },
+  participants: [
+    { name: "User1" },
+    { name: "User2" },
+    { name: "User3" },
+    { name: "User4" },
+    { name: "User5" }
+  ],
+  options: [
+    { 
+      voted: [0, 1, 2], // 3 Stimmen für React
+      worst: [4]        // 1 "worst" Stimme
+    },
+    { 
+      voted: [3],       // 1 Stimme für Vue
+      worst: [2]        // 1 "worst" Stimme
+    },
+    { 
+      voted: [4],       // 1 Stimme für Angular
+      worst: [0, 1, 3]  // 3 "worst" Stimmen
+    }
+  ]
+};
 const PollsPage = () => {
   // Beispiel-Daten für die Demonstration
   const examplePolls: Poll[] = [
@@ -74,6 +119,10 @@ const PollsPage = () => {
             />
           ))}
         </div>
+        <div className="bg-white rounded-lg shadow-md p-6 mt-8">
+  <h2 className="text-xl font-semibold mb-4">Umfrage Statistiken</h2>
+  <PollStatistics statistics={exampleStatistics} />
+</div>
       </div>
     </div>
   );
