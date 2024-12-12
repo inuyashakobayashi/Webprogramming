@@ -1,25 +1,15 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import Navbar from './components/Navbar'
-import Home from './pages/Home'
-import About from './pages/About'
-import Contact from './pages/Contact'
-import './App.css'
+// src/App.tsx
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import PollsPage from './pages/PollsPage';
 
 function App() {
   return (
     <Router>
-      <div>
-        <Navbar />
-        <div style={{ padding: '2rem' }}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-          </Routes>
-        </div>
-      </div>
+      <Routes>
+        <Route path="/" element={<PollsPage />} />
+      </Routes>
     </Router>
-  )
+  );
 }
 
-export default App
+export default App;
