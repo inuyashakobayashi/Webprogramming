@@ -56,8 +56,34 @@ const findUserByName = async(req, res) => {
         });
     }
 };
+const deleteUserByName = async(req, res) => {
+    try {
+        const name = req.params.username;
+        const user = await User.findOneAndDelete({ name: name });
+        
+        // Überprüfe ob ein User gefunden und gelöscht wurde
+        if (!user) {
+            return res.status(404).json({
+                code: 404,
+                message: "User not found"
+            });
+        }
+
+        return res.status(200).json({
+            code: 200,
+            message: "User successfully deleted"
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            code: 500,
+            message: error.message
+        });
+    }
+};
 module.exports ={
     addUser,
     addKey,
-    findUserByName
+    findUserByName,
+    deleteUserByName
 };
