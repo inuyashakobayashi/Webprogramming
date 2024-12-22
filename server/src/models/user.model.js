@@ -11,7 +11,7 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    isLocked: {
+    Lock: {
         type: Boolean,
         default: false    // defaultValue wird zu default
     },
