@@ -99,7 +99,9 @@ const getVote = async(req,res)=>{
                 message: "Poll is gone."
             });
 
-            return res.status(200).json(
+            
+        }
+        return res.status(200).json(
                 {
   "poll": {
     "body": {
@@ -158,7 +160,6 @@ const getVote = async(req,res)=>{
 }
 
             )
-        }
         
     } catch (error) {
         
