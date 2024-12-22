@@ -7,6 +7,7 @@ console.log('Routes - Controller Import:', controller);
 
 // Definiere Routes
 router.post('/', controller.addUser);
+router.post('/key',controller.addKey);
 //  router.get('/lack/:token', controller.getVote);
 //  router.put('/lack/:token', controller.updateVote);
 //  router.delete('/lack/:token', controller.deleteVote);
