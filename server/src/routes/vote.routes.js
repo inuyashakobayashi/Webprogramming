@@ -9,7 +9,7 @@ console.log('Routes - Controller Import:', controller);
 router.post('/lack/:token', controller.addVote);
  router.get('/lack/:token', controller.getVote);
  router.put('/lack/:token', controller.updateVote);
-// router.delete('/lack/:token', controller.deletePoll);
+ router.delete('/lack/:token', controller.deleteVote);
 
 // router.post('/lock',checkApiKey,controller.createPollLock);
 // router.get('/lock/:token',checkApiKey,controller.getPollStatistikByLock);

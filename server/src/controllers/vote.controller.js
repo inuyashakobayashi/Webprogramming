@@ -216,8 +216,37 @@ const updateVote = async(req,res)=> {
     
   }
 }
+
+
+
+const deleteVote = async(req,res) => {
+  try {
+    const editToken =req.params.token;
+    const poll = await Poll.findOne({'options.votes.editToken':editToken});
+    if(!poll){
+         return res.status(404).json({
+                        code: 404,
+                        message: "Poll not found"
+                    });
+    }
+        // Entferne den alten Vote aus den Poll-Optionen
+        for (const option of poll.options) {
+            option.votes = option.votes.filter(v => v.editToken !== editToken);
+        }
+        await poll.save();
+        const vote = await Vote.findOneAndDelete({'editToken':editToken});
+        return res.status(200).json({
+  "code": 200,
+  "message": "i. O."
+})
+
+  } catch (error) {
+    
+  }
+}
 module.exports={
     addVote,
     getVote,
     updateVote,
+    deleteVote
 };
