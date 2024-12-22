@@ -165,7 +165,59 @@ const getVote = async(req,res)=>{
         
     }
 };
+
+const updateVote = async(req,res)=> {
+  try {
+    const editToken = req.params.token;
+    const {owner,choice} = req.body;
+    const poll = await Poll.findOne({'options.votes.editToken':editToken});
+    if(!poll){
+         return res.status(404).json({
+                        code: 404,
+                        message: "Poll not found"
+                    });
+    }
+        // Entferne den alten Vote aus den Poll-Optionen
+        for (const option of poll.options) {
+            option.votes = option.votes.filter(v => v.editToken !== editToken);
+        }
+
+        // Füge den neuen Vote zu den Poll-Optionen hinzu
+        for (const c of choice) {
+            const optionIndex = poll.options.findIndex(opt => opt.id === c.id);
+            if (optionIndex !== -1) {
+                poll.options[optionIndex].votes.push({
+                    userId: owner.name,
+                    isWorst: c.worst || false,
+                    editToken: editToken,
+                    votedAt: new Date()
+                });
+            }
+        }
+
+        // Speichere die Änderungen am Poll
+        await poll.save();
+
+        // Update auch den Vote im Vote-Model
+        await Vote.findOneAndUpdate(
+            { editToken: editToken },
+            {
+                owner: owner,
+                choice: choice,
+                time: new Date()
+            },
+            { new: true }
+        );
+    return res.status(200).json({
+  "code": 200,
+  "message": "i. O."
+})
+  } catch (error) {
+    
+  }
+}
 module.exports={
     addVote,
     getVote,
+    updateVote,
 };

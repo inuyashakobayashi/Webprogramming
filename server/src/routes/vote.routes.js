@@ -8,7 +8,7 @@ console.log('Routes - Controller Import:', controller);
 // Definiere Routes
 router.post('/lack/:token', controller.addVote);
  router.get('/lack/:token', controller.getVote);
-// router.put('/lack/:token', controller.updatePoll);
+ router.put('/lack/:token', controller.updateVote);
 // router.delete('/lack/:token', controller.deletePoll);
 
 // router.post('/lock',checkApiKey,controller.createPollLock);
