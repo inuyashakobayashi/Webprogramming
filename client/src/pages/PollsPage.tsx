@@ -1,5 +1,5 @@
 // src/pages/PollsPage.tsx
-import React from 'react';
+import *as React from 'react';
 import PollCard from '../components/polls/pollCard';
 import PollCreate from '../components/polls/pollCreate';
 import PollStatistics from '../components/polls/pollStatistik';

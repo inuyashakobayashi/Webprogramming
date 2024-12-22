@@ -1,7 +1,7 @@
 const express = require('express');
 const connectDB = require('./config/db');
 const pollRoutes = require('./routes/poll.routes');
-
+const voteRoutes = require('./routes/vote.routes');
 const app = express();
 
 // Middleware
@@ -15,6 +15,7 @@ const startServer = async () => {
 
         // Routes
         app.use('/poll', pollRoutes);
+        app.use('/vote',voteRoutes);
 
         // Starte Server
         const PORT = 3000;
