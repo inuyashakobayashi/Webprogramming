@@ -1,8 +1,7 @@
 // src/pages/PollsPage.tsx
-import *as React from 'react';
-import PollCard from '../components/polls/pollCard';
+import PollCard from '../components/polls/PollCard';
 import PollCreate from '../components/polls/pollCreate';
-import PollStatistics from '../components/polls/pollStatistik';
+import PollStatistics from '../components/polls/PollStatistics';
 import { Poll, PollBody } from '../types/poll';
 // Füge diese Beispieldaten in PollsPage.tsx ein
 const exampleStatistics = {

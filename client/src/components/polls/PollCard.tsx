@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { Poll } from '../../types/poll';
 import { Calendar, Lock, Users, Edit, Trash } from 'lucide-react';
 
