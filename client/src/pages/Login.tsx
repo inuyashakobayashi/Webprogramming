@@ -1,8 +1,6 @@
 import React, { useState, FormEvent, ChangeEvent } from 'react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from './components/ui/label';
+import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
 
 interface LoginFormData {
   username: string;
@@ -33,16 +31,20 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">Login</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin}>
+    <div className="min-h-screen w-full bg-gray-100">
+      <div className="flex items-center justify-center min-h-screen w-full p-4">
+        <div className="w-full max-w-[90%] sm:max-w-[440px] p-4 sm:p-6 md:p-8 bg-white rounded-lg shadow-md">
+          <h1 className="text-xl sm:text-2xl font-bold text-center mb-4 sm:mb-6">Login</h1>
+          
+          <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Benutzername</Label>
+                <label 
+                  htmlFor="username" 
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Benutzername
+                </label>
                 <Input
                   id="username"
                   name="username"
@@ -50,10 +52,17 @@ const LoginPage: React.FC = () => {
                   value={formData.username}
                   onChange={handleInputChange}
                   required
+                  className="w-full"
                 />
               </div>
+              
               <div className="space-y-2">
-                <Label htmlFor="password">Passwort</Label>
+                <label 
+                  htmlFor="password" 
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Passwort
+                </label>
                 <Input
                   id="password"
                   name="password"
@@ -61,26 +70,28 @@ const LoginPage: React.FC = () => {
                   value={formData.password}
                   onChange={handleInputChange}
                   required
+                  className="w-full"
                 />
               </div>
             </div>
-            <div className="mt-6 space-y-4">
-              <Button type="submit" className="w-full">
-                Anmelden
-              </Button>
-            </div>
+
+            <Button
+              type="submit"
+              className="w-full mt-4 sm:mt-6"
+            >
+              Anmelden
+            </Button>
           </form>
-        </CardContent>
-        <CardFooter>
-          <Button 
-            variant="outline" 
-            className="w-full"
+
+          <Button
+            variant="outline"
             onClick={handleSkip}
+            className="w-full mt-3 sm:mt-4"
           >
             Ohne Anmeldung fortfahren
           </Button>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };
