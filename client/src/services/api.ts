@@ -1,99 +1,55 @@
-import axios from 'axios';
+// Base URL für alle API-Aufrufe
+const API_BASE_URL = '/api';
 
-const API_URL = 'http://localhost:3000'; // oder Ihre API-URL
-
-// Interfaces basierend auf der OpenAPI-Spec
-interface PollBody {
-  title: string;
-  description?: string;
-  options: { id: number; text: string; }[];
-  setting?: {
-    voices?: number;
-    worst?: boolean;
-    deadline?: string;
-  };
-}
-
-interface PollResult {
-  admin: { value: string };
-  share: { value: string };
-}
-
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
+export async function fetchApi<T>(
+  endpoint: string, 
+  options: RequestInit = {}
+): Promise<T> {
+  const token = localStorage.getItem('auth-token');
+  
+  const headers = {
     'Content-Type': 'application/json',
-  },
-});
+    ...(token ? { 'API-KEY': token } : {}),
+    ...(options.headers || {})
+  };
 
-// Auth Token Setup
-export const setAuthToken = (token: string) => {
-  if (token) {
-    api.defaults.headers.common['API-KEY'] = token;
-  } else {
-    delete api.defaults.headers.common['API-KEY'];
+  try {
+    console.log('Sending request to:', `${API_BASE_URL}${endpoint}`);
+    console.log('Request options:', { ...options, headers });
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers
+    });
+
+    console.log('Response status:', response.status);
+
+    if (!response.ok) {
+      try {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      } catch (e) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    }
+
+    const text = await response.text();
+    if (!text) {
+      console.log('Empty response received');
+      return {} as T;
+    }
+
+    try {
+      const data = JSON.parse(text);
+      console.log('Parsed response data:', data);
+      return data;
+    } catch (e) {
+      console.log('Response is not JSON, returning as text:', text);
+      return text as unknown as T;
+    }
+
+  } catch (error) {
+    console.error('API call failed:', error);
+    throw error;
   }
-};
-
-export const pollService = {
-  // Umfrage ohne Anmeldung erstellen (Pollack)
-  createPollack: async (pollData: PollBody) => {
-    const response = await api.post<PollResult>('/poll/lack', pollData);
-    return response.data;
-  },
-
-  // Umfrage mit Anmeldung erstellen (Pollock)
-  createPollock: async (pollData: PollBody) => {
-    const response = await api.post<PollResult>('/poll/lock', pollData);
-    return response.data;
-  },
-
-  // Umfrage Details abrufen
-  getPoll: async (token: string, isLocked: boolean = false) => {
-    const path = isLocked ? '/poll/lock' : '/poll/lack';
-    const response = await api.get(`${path}/${token}`);
-    return response.data;
-  },
-
-  // Umfrage bearbeiten
-  updatePoll: async (token: string, pollData: PollBody, isLocked: boolean = false) => {
-    const path = isLocked ? '/poll/lock' : '/poll/lack';
-    const response = await api.put(`${path}/${token}`, pollData);
-    return response.data;
-  },
-
-  // Umfrage löschen
-  deletePoll: async (token: string, isLocked: boolean = false) => {
-    const path = isLocked ? '/poll/lock' : '/poll/lack';
-    const response = await api.delete(`${path}/${token}`);
-    return response.data;
-  }
-};
-
-export const voteService = {
-  // Abstimmung ohne Anmeldung
-  voteInPollack: async (token: string, voteData: { owner: { name: string }, choice: { id: number, worst?: boolean }[] }) => {
-    const response = await api.post(`/vote/lack/${token}`, voteData);
-    return response.data;
-  },
-
-  // Abstimmung mit Anmeldung
-  voteInPollock: async (token: string, voteData: { choice: { id: number, worst?: boolean }[] }) => {
-    const response = await api.post(`/vote/lock/${token}`, voteData);
-    return response.data;
-  }
-};
-
-export const authService = {
-  // Benutzer registrieren
-  register: async (userData: { name: string; password: string }) => {
-    const response = await api.post('/user', userData);
-    return response.data;
-  },
-
-  // API-Key erstellen
-  createApiKey: async (userData: { name: string; password: string }) => {
-    const response = await api.post('/user/key', userData);
-    return response.data;
-  }
-};
+}

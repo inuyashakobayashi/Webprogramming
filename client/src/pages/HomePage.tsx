@@ -1,95 +1,127 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import PollCard from '@/components/polls/PollCard';
-import { Poll } from '@/types/poll';
-import { Loader2 } from "lucide-react";
+import { ArrowRight, Vote, BarChart3, Lock } from "lucide-react";
+import { authService } from '@/services/AuthService';
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const [polls, setPolls] = useState<Poll[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
+  const isAuthenticated = authService.isAuthenticated();
 
-  useEffect(() => {
-    const fetchPolls = async () => {
-      try {
-        // Assuming there's an API endpoint to fetch public polls
-        const response = await fetch('/api/polls/public');
-        if (!response.ok) {
-          throw new Error('Failed to fetch polls');
-        }
-
-        const data = await response.json();
-        setPolls(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load polls');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPolls();
-  }, []);
+  const handleCreatePoll = () => {
+    if (isAuthenticated) {
+      // Wenn eingeloggt, zur Pollock-Erstellung
+      navigate('/poll/lock/create');
+    } else {
+      // Wenn nicht eingeloggt, zur Pollack-Erstellung
+      navigate('/poll/lack/create');
+    }
+  };
 
   return (
     <div className="container mx-auto py-8">
       {/* Hero Section */}
-      <div className="text-center mb-12">
+      <div className="text-center mb-16">
         <h1 className="text-4xl font-bold mb-4">Welcome to Poll System</h1>
-        <p className="text-gray-600 mb-8">
-          Create and participate in polls easily. Get instant results and insights.
+        <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
+          Create and participate in polls easily. Choose between Pollock for secure, authenticated polls 
+          or Pollack for quick, open polls.
         </p>
-        <Button 
-          size="lg"
-          onClick={() => navigate('/poll/create')}
-        >
-          Create New Poll
-        </Button>
-      </div>
-
-      {/* Recent Polls Section */}
-      <div className="mt-12">
-        <h2 className="text-2xl font-bold mb-6">Recent Polls</h2>
-
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-          </div>
-        ) : error ? (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        ) : polls.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            No polls available yet. Be the first to create one!
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {polls.map((poll) => (
-              <PollCard
-                key={poll.share.value}
-                poll={poll}
-              />
-            ))}
-          </div>
-        )}
+        <div className="flex justify-center gap-4">
+          <Button 
+            size="lg"
+            onClick={handleCreatePoll}
+            className="flex items-center gap-2"
+          >
+            Create New Poll
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+          {!isAuthenticated && (
+            <Button 
+              size="lg"
+              variant="outline"
+              onClick={() => navigate('/login')}
+            >
+              Sign In
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Features Section */}
-      <div className="mt-16 grid md:grid-cols-3 gap-8">
-        <div className="text-center p-6 bg-white rounded-lg shadow-sm">
-          <h3 className="text-xl font-semibold mb-2">Easy to Use</h3>
-          <p className="text-gray-600">Create polls in seconds with our intuitive interface</p>
+      <div className="grid md:grid-cols-3 gap-8 mb-16">
+        <div className="flex flex-col items-center p-6 bg-white rounded-lg shadow-sm">
+          <Vote className="w-12 h-12 text-blue-500 mb-4" />
+          <h3 className="text-xl font-semibold mb-2">Easy Voting</h3>
+          <p className="text-gray-600 text-center">
+            Create polls in seconds with our intuitive interface. Share them instantly with anyone.
+          </p>
         </div>
-        <div className="text-center p-6 bg-white rounded-lg shadow-sm">
+        <div className="flex flex-col items-center p-6 bg-white rounded-lg shadow-sm">
+          <BarChart3 className="w-12 h-12 text-blue-500 mb-4" />
           <h3 className="text-xl font-semibold mb-2">Real-time Results</h3>
-          <p className="text-gray-600">Watch results update instantly as votes come in</p>
+          <p className="text-gray-600 text-center">
+            Watch results update instantly as votes come in. Get detailed statistics and insights.
+          </p>
         </div>
-        <div className="text-center p-6 bg-white rounded-lg shadow-sm">
-          <h3 className="text-xl font-semibold mb-2">Secure Voting</h3>
-          <p className="text-gray-600">Optional authentication for controlled polling</p>
+        <div className="flex flex-col items-center p-6 bg-white rounded-lg shadow-sm">
+          <Lock className="w-12 h-12 text-blue-500 mb-4" />
+          <h3 className="text-xl font-semibold mb-2">Secure Options</h3>
+          <p className="text-gray-600 text-center">
+            Choose between authenticated Pollock or quick Pollack modes for your polling needs.
+          </p>
+        </div>
+      </div>
+
+      {/* Types Section */}
+      <div className="grid md:grid-cols-2 gap-8">
+        <div className="p-6 bg-white rounded-lg shadow-sm border border-gray-200">
+          <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+            <Lock className="w-6 h-6" /> Pollock
+          </h3>
+          <p className="text-gray-600 mb-4">
+            Secure, authenticated polling system:
+          </p>
+          <ul className="space-y-2 text-gray-600 mb-6">
+            <li>• User authentication required</li>
+            <li>• Control over participants</li>
+            <li>• Enhanced security features</li>
+            <li>• Perfect for official polls</li>
+          </ul>
+          {isAuthenticated ? (
+            <Button 
+              onClick={() => navigate('/poll/lock/create')}
+              className="w-full"
+            >
+              Create Pollock Poll
+            </Button>
+          ) : (
+            <Button 
+              onClick={() => navigate('/login')}
+              className="w-full"
+            >
+              Get Started with Pollock
+            </Button>
+          )}
+        </div>
+
+        <div className="p-6 bg-white rounded-lg shadow-sm border border-gray-200">
+          <h3 className="text-2xl font-semibold mb-4">Pollack</h3>
+          <p className="text-gray-600 mb-4">
+            Quick and open polling system:
+          </p>
+          <ul className="space-y-2 text-gray-600 mb-6">
+            <li>• No registration required</li>
+            <li>• Instant poll creation</li>
+            <li>• Easy sharing</li>
+            <li>• Perfect for quick polls</li>
+          </ul>
+          <Button 
+            variant="outline"
+            onClick={() => navigate('/poll/lack/create')}
+            className="w-full"
+          >
+            Create Quick Poll
+          </Button>
         </div>
       </div>
     </div>

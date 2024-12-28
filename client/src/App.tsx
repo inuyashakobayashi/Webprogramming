@@ -14,7 +14,6 @@ const App = () => {
 
   const handleLogout = () => {
     setUser(undefined);
-    // Clear any auth tokens or state
     localStorage.removeItem('auth-token');
   };
 
@@ -31,12 +30,22 @@ const App = () => {
             <LoginPage onLogin={handleLogin} />
           } />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/poll/create" element={
-            user?.lock ? <CreatePollPage /> : <Navigate to="/login" />
+          
+          {/* Pollock (authenticated) routes */}
+          <Route path="/poll/lock/create" element={
+            user?.lock ? <CreatePollPage isLocked={true} /> : <Navigate to="/login" />
           } />
-          <Route path="/poll/:token" element={<PollDetailsPage />} />
-          <Route path="/poll/:token/vote" element={<VotePage />} />
-          {/* Add more routes as needed */}
+          
+          {/* Pollack (public) routes */}
+          <Route path="/poll/lack/create" element={
+            <CreatePollPage isLocked={false} />
+          } />
+
+          {/* Shared routes */}
+          <Route path="/poll/:token" element={<PollDetailsPage user={user} />} />
+          <Route path="/poll/:token/vote" element={<VotePage user={user} />} />
+          
+          {/* Catch all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>

@@ -4,9 +4,14 @@ import PollForm from '@/components/polls/PollForm';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { PollBody, PollResult } from '@/types/poll';
+import { PollBody } from '@/types/poll';
+import { pollService } from '@/services/PollService';
 
-const CreatePollPage = () => {
+export interface CreatePollPageProps {
+  isLocked: boolean;
+}
+
+const CreatePollPage: React.FC<CreatePollPageProps> = ({ isLocked }) => {
   const navigate = useNavigate();
   const [error, setError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -16,30 +21,22 @@ const CreatePollPage = () => {
     setError('');
 
     try {
-      const response = await fetch('/api/poll/lack', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(pollData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create poll');
-      }
-
-      const result: PollResult = await response.json();
-      // Navigate to the poll view page with the share token
+      const result = isLocked 
+        ? await pollService.createPollLock(pollData)
+        : await pollService.createPollLack(pollData);
+      
       navigate(`/poll/${result.share.value}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : 'Failed to create poll');
       setIsSubmitting(false);
     }
   };
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-8">Create New Poll</h1>
+      <h1 className="text-2xl font-bold mb-8">
+        Create New {isLocked ? 'Pollock' : 'Pollack'} Poll
+      </h1>
       
       {error && (
         <Alert variant="destructive" className="mb-4">
@@ -56,7 +53,7 @@ const CreatePollPage = () => {
         
         <PollForm 
           onSubmit={handleSubmit} 
-          isLocked={false} 
+          isLocked={isLocked} 
         />
       </div>
 

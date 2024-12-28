@@ -11,13 +11,6 @@ router.post('/key',controller.addKey);
 router.get('/:username',controller.findUserByName);
 router.delete('/:username',checkApiKey,controller.deleteUserByName);
 
-//  router.get('/lack/:token', controller.getVote);
-//  router.put('/lack/:token', controller.updateVote);
-//  router.delete('/lack/:token', controller.deleteVote);
 
-// router.post('/lock/:token', checkApiKey, controller.addVote);
-// router.get('/lock/:token', checkApiKey, controller.getVote);
-// router.put('/lock/:token', checkApiKey, controller.updateVote);
-// router.delete('/lock/:token', checkApiKey, controller.deleteVote);
 
 module.exports = router;

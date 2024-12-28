@@ -2,9 +2,15 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import VoteForm from '@/components/polls/VoteForm';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Poll, Vote } from '@/types/poll';
+import { Loader2 } from "lucide-react";
+import { Poll, Vote, User } from '@/types/poll';
+import { pollService } from '@/services/PollService';
 
-const VotePage = () => {
+interface VotePageProps {
+  user?: User;
+}
+
+const VotePage: React.FC<VotePageProps> = ({ user }) => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const [poll, setPoll] = useState<Poll | null>(null);
@@ -13,50 +19,46 @@ const VotePage = () => {
 
   useEffect(() => {
     const fetchPoll = async () => {
-      try {
-        const response = await fetch(`/api/poll/lack/${token}`);
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('Poll not found');
-          }
-          throw new Error('Failed to fetch poll');
-        }
+      if (!token) return;
 
-        const data = await response.json();
-        setPoll(data.poll);
+      try {
+        // Versuche zuerst als public poll
+        const response = await pollService.getPollLackStatistics(token);
+        setPoll(response.poll);
+        
+        // Wenn der Poll "lock" ist und wir keinen User haben, redirect zum Login
+        if (response.poll.security?.visibility === 'lock' && !user?.lock) {
+          navigate('/login', { state: { returnUrl: `/poll/${token}/vote` } });
+          return;
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError(err instanceof Error ? err.message : 'Failed to fetch poll');
       } finally {
         setLoading(false);
       }
     };
 
     fetchPoll();
-  }, [token]);
+  }, [token, user, navigate]);
 
   const handleVote = async (voteData: Vote) => {
+    if (!token || !poll) return;
+
     try {
-      const response = await fetch(`/api/vote/lack/${token}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(voteData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to submit vote');
-      }
-
-      // Navigate to results page after successful vote
-      navigate(`/poll/${token}`);
+      const isLocked = poll.security?.visibility === 'lock';
+      await pollService.submitVote(token, voteData, isLocked);
+      navigate(`/poll/${token}`); // Navigate to results after voting
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : 'Failed to submit vote');
     }
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    );
   }
 
   if (error) {
@@ -71,7 +73,7 @@ const VotePage = () => {
     return <div>Poll not found</div>;
   }
 
-  // Check if poll is expired or fixed
+  // Prüfe ob die Umfrage abgelaufen oder geschlossen ist
   const isExpired = poll.body.setting?.deadline 
     ? new Date(poll.body.setting.deadline) < new Date() 
     : false;
@@ -91,7 +93,10 @@ const VotePage = () => {
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-2xl font-bold mb-8">Cast Your Vote</h1>
-      <VoteForm poll={poll} onSubmit={handleVote} />
+      <VoteForm 
+        poll={poll} 
+        onSubmit={handleVote}
+      />
     </div>
   );
 };

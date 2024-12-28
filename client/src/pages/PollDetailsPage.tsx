@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import PollStatistics from '@/components/polls/PollStatistics';
-import { Statistics } from '@/types/poll';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Share2 } from "lucide-react";
+import { Share2, Loader2 } from "lucide-react";
+import { Statistics, User } from '@/types/poll';
+import { pollService } from '@/services/PollService';
 
-const PollDetailsPage = () => {
+export interface PollDetailsPageProps {
+  user?: User;
+}
+
+const PollDetailsPage: React.FC<PollDetailsPageProps> = ({ user }) => {
   const { token } = useParams<{ token: string }>();
   const [statistics, setStatistics] = useState<Statistics | null>(null);
   const [error, setError] = useState<string>('');
@@ -14,35 +19,31 @@ const PollDetailsPage = () => {
 
   useEffect(() => {
     const fetchPollData = async () => {
-      try {
-        const response = await fetch(`/api/poll/lack/${token}`);
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('Poll not found');
-          }
-          throw new Error('Failed to fetch poll data');
-        }
+      if (!token) return;
 
-        const data = await response.json();
+      try {
+        const isLocked = !!user?.lock;
+        const data = isLocked 
+          ? await pollService.getPollLockStatistics(token)
+          : await pollService.getPollLackStatistics(token);
+          
         setStatistics(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError(err instanceof Error ? err.message : 'Failed to fetch poll data');
       } finally {
         setLoading(false);
       }
     };
 
     fetchPollData();
-  }, [token]);
-
-  const handleShare = () => {
-    const shareUrl = window.location.href;
-    navigator.clipboard.writeText(shareUrl);
-    // You might want to add a toast notification here
-  };
+  }, [token, user]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    );
   }
 
   if (error) {
@@ -63,7 +64,9 @@ const PollDetailsPage = () => {
         <h1 className="text-2xl font-bold">Poll Results</h1>
         <Button
           variant="outline"
-          onClick={handleShare}
+          onClick={() => {
+            navigator.clipboard.writeText(window.location.href);
+          }}
           className="flex items-center gap-2"
         >
           <Share2 className="h-4 w-4" />
