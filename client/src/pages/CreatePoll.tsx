@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle, Trash2 } from "lucide-react";
 import { Label } from '@/components/ui/label';
+import { pollService } from '@/services/api';
+import { useToast } from "@/hooks/use-toast";
 
 interface PollOption {
   id: number;
@@ -14,6 +16,8 @@ interface PollOption {
 
 const CreatePoll: React.FC = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [options, setOptions] = useState<PollOption[]>([
@@ -21,6 +25,7 @@ const CreatePoll: React.FC = () => {
     { id: 2, text: '' }
   ]);
   const [deadline, setDeadline] = useState('');
+  const [isLocked, setIsLocked] = useState(false);
 
   const handleAddOption = () => {
     const newId = Math.max(...options.map(opt => opt.id), 0) + 1;
@@ -41,16 +46,39 @@ const CreatePoll: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const pollData = {
-      title,
-      description,
-      options: options.map(opt => ({ id: opt.id, text: opt.text })),
-      deadline: deadline ? new Date(deadline).toISOString() : undefined,
-    };
-    
-    console.log('Submitting poll:', pollData);
-    // Hier später API-Aufruf implementieren
-    navigate('/');
+    setIsSubmitting(true);
+
+    try {
+      const pollData = {
+        title,
+        description,
+        options: options.map(opt => ({ id: opt.id, text: opt.text })),
+        setting: {
+          deadline: deadline ? new Date(deadline).toISOString() : undefined,
+        }
+      };
+
+      const result = isLocked 
+        ? await pollService.createPollock(pollData)
+        : await pollService.createPollack(pollData);
+
+      toast({
+        title: "Umfrage erstellt!",
+        description: "Ihre Umfrage wurde erfolgreich erstellt.",
+      });
+
+      // Zur Umfrage-Ansicht navigieren
+      navigate(`/poll/${result.share.value}`);
+    } catch (error) {
+      console.error('Error creating poll:', error);
+      toast({
+        title: "Fehler",
+        description: "Die Umfrage konnte nicht erstellt werden. Bitte versuchen Sie es später erneut.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -126,17 +154,37 @@ const CreatePoll: React.FC = () => {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="visibility">Sichtbarkeit</Label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="locked"
+                  checked={isLocked}
+                  onChange={(e) => setIsLocked(e.target.checked)}
+                />
+                <label htmlFor="locked">
+                  Nur für registrierte Benutzer sichtbar
+                </label>
+              </div>
+            </div>
+
             <div className="flex gap-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => navigate('/')}
                 className="w-full"
+                disabled={isSubmitting}
               >
                 Abbrechen
               </Button>
-              <Button type="submit" className="w-full">
-                Umfrage erstellen
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Wird erstellt..." : "Umfrage erstellen"}
               </Button>
             </div>
           </form>
