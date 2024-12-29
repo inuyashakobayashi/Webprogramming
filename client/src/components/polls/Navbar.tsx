@@ -1,3 +1,4 @@
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { User } from '@/types/poll';
 
@@ -7,37 +8,45 @@ interface NavBarProps {
 }
 
 const NavBar: React.FC<NavBarProps> = ({ user, onLogout }) => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+      navigate('/'); // Nach Logout zur Homepage
+    }
+  };
+
   return (
     <nav className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <span className="text-xl font-bold">
+              <Link to="/" className="text-xl font-bold">
                 {user?.lock ? 'Pollock' : 'Pollack'}
-              </span>
+              </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <a
-                href="/"
+              <Link
+                to="/"
                 className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
               >
                 Home
-              </a>
-              <a
-                href="/polls/create"
+              </Link>
+              <Link
+                to={user?.lock ? "/poll/lock/create" : "/poll/lack/create"}
                 className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
               >
                 Create Poll
-              </a>
-              {user && (
-                <a
-                  href="/polls/my"
-                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                >
-                  My Polls
-                </a>
-              )}
+              </Link>
+               <Link
+                to={user?.lock ? "/poll/lock/find" : "/poll/lack/find"}
+                className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+              >
+                Find Poll
+              </Link>
+
             </div>
           </div>
           <div className="flex items-center">
@@ -47,7 +56,7 @@ const NavBar: React.FC<NavBarProps> = ({ user, onLogout }) => {
                   Welcome, {user.name}
                 </span>
                 <Button
-                  onClick={onLogout}
+                  onClick={handleLogout}
                   variant="outline"
                   size="sm"
                 >
@@ -59,15 +68,15 @@ const NavBar: React.FC<NavBarProps> = ({ user, onLogout }) => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  asChild
+                  onClick={() => navigate('/login')}
                 >
-                  <a href="/login">Login</a>
+                  Login
                 </Button>
                 <Button
                   size="sm"
-                  asChild
+                  onClick={() => navigate('/register')}
                 >
-                  <a href="/register">Register</a>
+                  Register
                 </Button>
               </div>
             )}
