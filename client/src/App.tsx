@@ -8,7 +8,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
 import { User } from './types/poll';
-
+import FindPollPage from './pages/FindPollPage';
 const App = () => {
   const [user, setUser] = useState<User | undefined>(undefined);
 
@@ -47,6 +47,20 @@ const App = () => {
           
           {/* Catch all */}
           <Route path="*" element={<Navigate to="/" replace />} />
+
+
+
+          {/* Pollock (authenticated) routes */}
+<Route 
+  path="/poll/lock/find" 
+  element={user?.lock ? <FindPollPage isLocked={true} /> : <Navigate to="/login" />} 
+/>
+
+{/* Pollack (public) routes */}
+<Route 
+  path="/poll/lack/find" 
+  element={<FindPollPage isLocked={false} />} 
+/>
         </Routes>
       </Layout>
     </Router>

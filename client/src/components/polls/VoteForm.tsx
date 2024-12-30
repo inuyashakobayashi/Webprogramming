@@ -1,106 +1,122 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { Poll, Vote, User, VoteChoice } from '@/types/poll';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { VoteFormProps, Vote, VoteChoice } from '@/types/poll';
 
-const VoteForm: React.FC<VoteFormProps> = ({ poll, onSubmit }) => {
-  const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
-  const [worstOption, setWorstOption] = useState<number | null>(null);
+interface VoteFormProps {
+  poll: Poll;
+  onSubmit: (vote: Vote) => void;
+  user?: User;
+}
 
-  const handleOptionChange = (optionId: number) => {
-    if (poll.body.setting?.voices === 1) {
-      setSelectedOptions([optionId]);
+const VoteForm: React.FC<VoteFormProps> = ({ poll, onSubmit, user }) => {
+  const [selectedOptions, setSelectedOptions] = useState<Set<number>>(new Set());
+  const [worstOptions, setWorstOptions] = useState<Set<number>>(new Set());
+  const [error, setError] = useState<string>('');
+
+  const handleOptionToggle = (optionId: number) => {
+    const newSelected = new Set(selectedOptions);
+    if (newSelected.has(optionId)) {
+      newSelected.delete(optionId);
+      // Also remove from worst options if it was there
+      const newWorst = new Set(worstOptions);
+      newWorst.delete(optionId);
+      setWorstOptions(newWorst);
     } else {
-      setSelectedOptions(prev => {
-        if (prev.includes(optionId)) {
-          return prev.filter(id => id !== optionId);
-        }
-        if (!poll.body.setting?.voices || prev.length < poll.body.setting.voices) {
-          return [...prev, optionId];
-        }
-        return prev;
-      });
+      // Check if we haven't exceeded the maximum allowed voices
+      if (poll.body.setting?.voices && newSelected.size >= poll.body.setting.voices) {
+        setError(`You can only select up to ${poll.body.setting.voices} options`);
+        return;
+      }
+      newSelected.add(optionId);
     }
+    setSelectedOptions(newSelected);
+    setError('');
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleWorstToggle = (optionId: number) => {
+    if (!selectedOptions.has(optionId)) return; // Can only mark as worst if selected
+    const newWorst = new Set(worstOptions);
+    if (newWorst.has(optionId)) {
+      newWorst.delete(optionId);
+    } else {
+      newWorst.add(optionId);
+    }
+    setWorstOptions(newWorst);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const vote: Vote = {
-      choice: selectedOptions.map((id): VoteChoice => ({
-        id,
-        worst: worstOption === id
-      }))
+    
+    if (selectedOptions.size === 0) {
+      setError('Please select at least one option');
+      return;
+    }
+
+    // Format the vote data according to the API requirements
+    const choices: VoteChoice[] = Array.from(selectedOptions).map(optionId => ({
+      id: optionId,
+      worst: worstOptions.has(optionId)
+    }));
+
+    const voteData: Vote = {
+      owner: {
+        name: user?.name || 'anonymous',
+        lock: !!user?.lock
+      },
+      choice: choices
     };
-    onSubmit(vote);
+
+    console.log('Submitting vote with data:', voteData);
+    onSubmit(voteData);
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>{poll.body.title}</CardTitle>
-        {poll.body.description && (
-          <CardDescription>{poll.body.description}</CardDescription>
-        )}
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {poll.body.setting?.voices === 1 ? (
-            <RadioGroup
-              value={selectedOptions[0]?.toString()}
-              onValueChange={(value) => handleOptionChange(parseInt(value))}
-            >
-              {poll.body.options.map(option => (
-                <div key={option.id} className="flex items-center space-x-2">
-                  <RadioGroupItem value={option.id.toString()} id={`option-${option.id}`} />
-                  <Label htmlFor={`option-${option.id}`}>{option.text}</Label>
-                </div>
-              ))}
-            </RadioGroup>
-          ) : (
-            <div className="space-y-4">
-              {poll.body.options.map(option => (
-                <div key={option.id} className="flex items-center space-x-2">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          {poll.body.options.map((option) => (
+            <div key={option.id} className="flex items-start space-x-4 p-2">
+              <div className="flex items-center h-5">
+                <Checkbox
+                  id={`option-${option.id}`}
+                  checked={selectedOptions.has(option.id)}
+                  onCheckedChange={() => handleOptionToggle(option.id)}
+                />
+              </div>
+              <div className="flex-grow">
+                <Label htmlFor={`option-${option.id}`}>
+                  {option.text}
+                </Label>
+              </div>
+              {poll.body.setting?.worst && selectedOptions.has(option.id) && (
+                <div className="flex items-center space-x-2">
                   <Checkbox
-                    id={`option-${option.id}`}
-                    checked={selectedOptions.includes(option.id)}
-                    onCheckedChange={() => handleOptionChange(option.id)}
+                    id={`worst-${option.id}`}
+                    checked={worstOptions.has(option.id)}
+                    onCheckedChange={() => handleWorstToggle(option.id)}
                   />
-                  <Label htmlFor={`option-${option.id}`}>{option.text}</Label>
+                  <Label htmlFor={`worst-${option.id}`}>Worst</Label>
                 </div>
-              ))}
+              )}
             </div>
-          )}
+          ))}
+        </CardContent>
+      </Card>
 
-          {poll.body.setting?.worst && (
-            <div className="pt-4 border-t">
-              <CardTitle className="text-base mb-4">Worst Choice</CardTitle>
-              <RadioGroup
-                value={worstOption?.toString()}
-                onValueChange={(value) => setWorstOption(parseInt(value))}
-              >
-                {poll.body.options.map(option => (
-                  <div key={option.id} className="flex items-center space-x-2">
-                    <RadioGroupItem value={option.id.toString()} id={`worst-${option.id}`} />
-                    <Label htmlFor={`worst-${option.id}`}>{option.text}</Label>
-                  </div>
-                ))}
-              </RadioGroup>
-            </div>
-          )}
-
-          <Button 
-            type="submit" 
-            className="w-full"
-            disabled={selectedOptions.length === 0}
-          >
-            Submit Vote
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+      <Button type="submit" className="w-full">
+        Submit Vote
+      </Button>
+    </form>
   );
 };
 
