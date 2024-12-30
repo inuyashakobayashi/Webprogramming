@@ -82,90 +82,46 @@ for (const c of choice) {
 
 }
 
-const getVote = async(req,res)=>{
-    try {const editToken = req.params.token
-        const poll = await Poll.findOne({ 'options.votes.editToken': editToken  });
-        
-                // Wenn kein Poll gefunden wurde
-                if (!poll) {
-                    return res.status(404).json({
-                        code: 404,
-                        message: "Poll not found"
-                    });
-                }
-                if (poll.isDeleted) {
-            return res.status(410).json({
-                code: 410,
-                message: "Poll is gone."
-            });
+const getVote = async (req, res) => {
+  try {
+    const editToken = req.params.token;
+    const poll = await Poll.findOne({ 'options.votes.editToken': editToken });
 
-            
-        }
-        return res.status(200).json(
-                {
-  "poll": {
-    "body": {
-      "title": "What is your favorite color?",
-      "description": "By blue are also meant blue-like colors, like turkish.",
-      "options": [
-        {
-          "id": 0,
-          "text": "string"
-        },
-        {
-          "id": 0,
-          "text": "string"
-        }
-      ],
-      "setting": {
-        "voices": 1,
-        "worst": false,
-        "deadline": "2023-05-29T19:21:39+02:00"
-      },
-      "fixed": [
-        0
-      ]
-    },
-    "security": {
-      "owner": {
-        "name": "string",
-        "lock": true
-      },
-      "users": [
-        {
-          "name": "string",
-          "lock": true
-        }
-      ],
-      "visibility": "lack"
-    },
-    "share": {
-      "link": "string",
-      "value": "71yachha3ca48yz7"
+    if (!poll) {
+      return res.status(404).json({
+        code: 404,
+        message: "Poll not found"
+      });
     }
-  },
-  "vote": {
-    "owner": {
-      "name": "string",
-      "lock": true
-    },
-    "choice": [
-      {
-        "id": 1,
-        "worst": false
-      }
-    ]
-  },
-  "time": "2023-05-29T19:21:39+02:00"
-}
 
-            )
-        
-    } catch (error) {
-        
+    if (poll.isDeleted) {
+      return res.status(410).json({
+        code: 410,
+        message: "Poll is gone."
+      });
     }
+
+    // Filter options to only include the vote with matching editToken
+    const filteredOptions = poll.options.map(option => ({
+      id: option.id,
+      text: option.text,
+      votes: option.votes.filter(vote => vote.editToken === editToken)
+    })).filter(option => option.votes.length > 0);
+
+    return res.status(200).json({
+      title: poll.title,
+      options: filteredOptions,
+      setting: poll.setting,
+      shareToken: poll.shareToken
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      code: 500,
+      message: "Internal server error"
+    });
+  }
 };
-
 const updateVote = async(req,res)=> {
   try {
     const editToken = req.params.token;
