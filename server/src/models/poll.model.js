@@ -1,59 +1,76 @@
-// src/models/poll.model.js
 const mongoose = require('mongoose');
 
 const PollSchema = new mongoose.Schema({
+  body: {
     title: {
-        type: String,
-        required: true
+      type: String,
+      required: true
     },
     description: String,
     options: [{
-        id: Number,
-        text: String,
-        votes: [{
-            userId: String,
-            isWorst: {
-                type: Boolean,
-                default: false
-            },
-            votedAt: {
-                type: Date,
-                default: Date.now
-            },
-            editToken: String
-        }]
+      id: {
+        type: Number,
+        required: true
+      },
+      text: {
+        type: String,
+        required: true
+      }
     }],
     setting: {
-        voices: {
-            type: Number,
-            min: 1
-        },
-        worst: {
-            type: Boolean,
-            default: false
-        },
-        deadline: Date
-    },
-    shareToken: {
-        type: String,
-        unique: true,
-        required: true
-    },
-    adminToken: {
-        type: String,
-        unique: true,
-        required: true
-    },
-    owner: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-    },
-    isDeleted: {
+      voices: {
+        type: Number,
+        min: 1
+      },
+      worst: {
         type: Boolean,
         default: false
+      },
+      deadline: Date
     },
-    deletedAt: Date,
-    created:Date
+    fixed: [{
+      type: Number,
+      min: 1
+    }]
+  },
+  security: {
+    owner: {
+      name: String,
+      lock: {
+        type: Boolean,
+        default: false
+      }
+    },
+    users: [{
+      name: String,
+      lock: {
+        type: Boolean,
+        default: false
+      }
+    }],
+    visibility: {
+      type: String,
+      enum: ['lock', 'lack'],
+      default: 'lack'
+    }
+  },
+  share: {
+    link: String,
+    value: {
+      type: String,
+      required: true,
+      unique: true
+    }
+  },
+  adminToken: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false
+  }
+}, {
+  timestamps: true
 });
-
-module.exports = mongoose.model('Poll', PollSchema);
