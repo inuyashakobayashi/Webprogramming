@@ -28,7 +28,7 @@ const createPoll = async (req, res) => {
                     worst: setting?.worst || false,
                     deadline: setting?.deadline
                 },
-                fixed: fixed || []
+                fixed: fixed || null
             },
             security: {
                 visibility: 'lack'

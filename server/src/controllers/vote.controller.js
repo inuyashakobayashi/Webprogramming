@@ -1,20 +1,23 @@
 const Vote = require('../models/vote.model')
 const Poll = require('../models/poll.model')
 const crypto = require('crypto')
-const addVote=async(req,res)=>{
+
+const addVote = async (req, res) => {
     try {
-        const shareToken = req.params.token;
-        const {owner,choice} = req.body;
-             const poll = await Poll.findOne({ shareToken: shareToken });
-        
-                // Wenn kein Poll gefunden wurde
-                if (!poll) {
-                    return res.status(404).json({
-                        code: 404,
-                        message: "Poll not found"
-                    });
-                }
-                if (poll.isDeleted) {
+        const shareValue = req.params.token;
+        const { owner, choice } = req.body;
+
+        // Finde Poll mit dem neuen share.value Pfad
+        const poll = await Poll.findOne({ 'share.value': shareValue });
+
+        if (!poll) {
+            return res.status(404).json({
+                code: 404,
+                message: "Poll not found"
+            });
+        }
+
+        if (poll.isDeleted) {
             return res.status(410).json({
                 code: 410,
                 message: "Poll is gone."
@@ -22,7 +25,7 @@ const addVote=async(req,res)=>{
         }
 
         // Validate the vote against poll settings
-        if (choice.length > poll.setting.voices) {
+        if (choice.length > poll.body.setting.voices) {
             return res.status(405).json({
                 code: 405,
                 message: "Too many choices selected"
@@ -30,15 +33,16 @@ const addVote=async(req,res)=>{
         }
 
         // Check if worst vote is allowed
-        if (!poll.setting.worst && choice.some(c => c.worst)) {
+        if (!poll.body.setting.worst && choice.some(c => c.worst)) {
             return res.status(405).json({
                 code: 405,
                 message: "Worst choice not allowed in this poll"
             });
         }
-const editToken = crypto.randomBytes(8).toString('hex');
 
-// Create new vote document
+        const editToken = crypto.randomBytes(8).toString('hex');
+
+        // Create new vote document
         const vote = new Vote({
             pollId: poll._id,
             owner: owner,
@@ -47,102 +51,14 @@ const editToken = crypto.randomBytes(8).toString('hex');
             time: new Date()
         });
 
-        // Save the vote
         await vote.save();
 
         // Update the poll's options with the new votes
-      // Update the poll's options with the new votes
-for (const c of choice) {
-    const optionIndex = poll.options.findIndex(opt => opt.id === c.id);
-    if (optionIndex !== -1) {
-        poll.options[optionIndex].votes.push({
-            userId: owner.name,
-            isWorst: c.worst || false,
-            editToken: editToken,  // Hier fehlte der editToken
-            votedAt: new Date()
-        });
-    }
-}
-
-        // Save the updated poll
-        await poll.save();
-
-        // Return the edit token as specified in the API
-        return res.status(200).json({
-            edit: {
-                value: editToken
-            }
-        });
-    } catch (error) {
-         return res.status(500).json({
-            code: 500,
-            message: error.message
-        });
-    }
-
-}
-
-const getVote = async (req, res) => {
-  try {
-    const editToken = req.params.token;
-    const poll = await Poll.findOne({ 'options.votes.editToken': editToken });
-
-    if (!poll) {
-      return res.status(404).json({
-        code: 404,
-        message: "Poll not found"
-      });
-    }
-
-    if (poll.isDeleted) {
-      return res.status(410).json({
-        code: 410,
-        message: "Poll is gone."
-      });
-    }
-
-    // Filter options to only include the vote with matching editToken
-    const filteredOptions = poll.options.map(option => ({
-      id: option.id,
-      text: option.text,
-      votes: option.votes.filter(vote => vote.editToken === editToken)
-    })).filter(option => option.votes.length > 0);
-
-    return res.status(200).json({
-      title: poll.title,
-      options: filteredOptions,
-      setting: poll.setting,
-      shareToken: poll.shareToken
-    });
-
-  } catch (error) {
-    return res.status(500).json({
-      code: 500,
-      message: "Internal server error"
-    });
-  }
-};
-const updateVote = async(req,res)=> {
-  try {
-    const editToken = req.params.token;
-    const {owner,choice} = req.body;
-    const poll = await Poll.findOne({'options.votes.editToken':editToken});
-    if(!poll){
-         return res.status(404).json({
-                        code: 404,
-                        message: "Poll not found"
-                    });
-    }
-        // Entferne den alten Vote aus den Poll-Optionen
-        for (const option of poll.options) {
-            option.votes = option.votes.filter(v => v.editToken !== editToken);
-        }
-
-        // Füge den neuen Vote zu den Poll-Optionen hinzu
         for (const c of choice) {
-            const optionIndex = poll.options.findIndex(opt => opt.id === c.id);
+            const optionIndex = poll.body.options.findIndex(opt => opt.id === c.id);
             if (optionIndex !== -1) {
-                poll.options[optionIndex].votes.push({
+                poll.body.options[optionIndex].votes = poll.body.options[optionIndex].votes || [];
+                poll.body.options[optionIndex].votes.push({
                     userId: owner.name,
                     isWorst: c.worst || false,
                     editToken: editToken,
@@ -151,7 +67,94 @@ const updateVote = async(req,res)=> {
             }
         }
 
-        // Speichere die Änderungen am Poll
+        await poll.save();
+
+        return res.status(200).json({
+            edit: {
+                value: editToken
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({
+            code: 500,
+            message: error.message
+        });
+    }
+};
+
+const getVote = async (req, res) => {
+    try {
+        const editToken = req.params.token;
+        const poll = await Poll.findOne({ 'body.options.votes.editToken': editToken });
+
+        if (!poll) {
+            return res.status(404).json({
+                code: 404,
+                message: "Poll not found"
+            });
+        }
+
+        if (poll.isDeleted) {
+            return res.status(410).json({
+                code: 410,
+                message: "Poll is gone."
+            });
+        }
+
+        // Filter options to only include the vote with matching editToken
+        const filteredOptions = poll.body.options.map(option => ({
+            id: option.id,
+            text: option.text,
+            votes: option.votes.filter(vote => vote.editToken === editToken)
+        })).filter(option => option.votes.length > 0);
+
+        return res.status(200).json({
+            title: poll.body.title,
+            options: filteredOptions,
+            setting: poll.body.setting,
+            share: poll.share
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            code: 500,
+            message: "Internal server error"
+        });
+    }
+};
+
+const updateVote = async (req, res) => {
+    try {
+        const editToken = req.params.token;
+        const { owner, choice } = req.body;
+        
+        const poll = await Poll.findOne({ 'body.options.votes.editToken': editToken });
+        
+        if (!poll) {
+            return res.status(404).json({
+                code: 404,
+                message: "Poll not found"
+            });
+        }
+
+        // Entferne den alten Vote aus den Poll-Optionen
+        for (const option of poll.body.options) {
+            option.votes = option.votes.filter(v => v.editToken !== editToken);
+        }
+
+        // Füge den neuen Vote zu den Poll-Optionen hinzu
+        for (const c of choice) {
+            const optionIndex = poll.body.options.findIndex(opt => opt.id === c.id);
+            if (optionIndex !== -1) {
+                poll.body.options[optionIndex].votes.push({
+                    userId: owner.name,
+                    isWorst: c.worst || false,
+                    editToken: editToken,
+                    votedAt: new Date()
+                });
+            }
+        }
+
         await poll.save();
 
         // Update auch den Vote im Vote-Model
@@ -164,43 +167,52 @@ const updateVote = async(req,res)=> {
             },
             { new: true }
         );
-    return res.status(200).json({
-  "code": 200,
-  "message": "i. O."
-})
-  } catch (error) {
-    
-  }
-}
 
-
-
-const deleteVote = async(req,res) => {
-  try {
-    const editToken =req.params.token;
-    const poll = await Poll.findOne({'options.votes.editToken':editToken});
-    if(!poll){
-         return res.status(404).json({
-                        code: 404,
-                        message: "Poll not found"
-                    });
+        return res.status(200).json({
+            code: 200,
+            message: "i. O."
+        });
+    } catch (error) {
+        return res.status(500).json({
+            code: 500,
+            message: "Internal server error"
+        });
     }
-        // Entferne den alten Vote aus den Poll-Optionen
-        for (const option of poll.options) {
+};
+
+const deleteVote = async (req, res) => {
+    try {
+        const editToken = req.params.token;
+        const poll = await Poll.findOne({ 'body.options.votes.editToken': editToken });
+        
+        if (!poll) {
+            return res.status(404).json({
+                code: 404,
+                message: "Poll not found"
+            });
+        }
+
+        // Entferne den Vote aus den Poll-Optionen
+        for (const option of poll.body.options) {
             option.votes = option.votes.filter(v => v.editToken !== editToken);
         }
+        
         await poll.save();
-        const vote = await Vote.findOneAndDelete({'editToken':editToken});
-        return res.status(200).json({
-  "code": 200,
-  "message": "i. O."
-})
+        await Vote.findOneAndDelete({ editToken: editToken });
 
-  } catch (error) {
-    
-  }
-}
-module.exports={
+        return res.status(200).json({
+            code: 200,
+            message: "i. O."
+        });
+    } catch (error) {
+        return res.status(500).json({
+            code: 500,
+            message: "Internal server error"
+        });
+    }
+};
+
+module.exports = {
     addVote,
     getVote,
     updateVote,
